@@ -1,67 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Ghost Animation</title>
+    <title>👻 Геловін AR — 3D Привид на Маркері</title>
 
     <!-- A-Frame -->
-    <script src="https://cdn.jsdelivr.net/npm/aframe@1.6.0/dist/aframe-master.min.js"></script>
-    <!-- AR.js з підтримкою NFT -->
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <!-- AR.js -->
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/aframe/build/aframe-ar-nft.js"></script>
 
-    <!-- Аніматор привида -->
-    <script>
-        window.onload = function() {
-            AFRAME.registerComponent('ghost-animator', {
-                schema: {
-                    interval: { type: 'number', default: 150 } // швидкість анімації в мс
-                },
-                init: function () {
-                    this.marker = this.el;
-                    this.imageEl = this.marker.querySelector('a-image');
-                    this.frames = [
-                        '#frame1', '#frame2', '#frame3', '#frame4',
-                        '#frame5', '#frame6', '#frame7', '#frame8'
-                    ];
-                    this.currentFrame = 0;
-                    this.isPlaying = false;
-                    this.intervalId = null;
-
-                    this.marker.addEventListener('markerFound', () => {
-                        this.startAnimation();
-                    });
-
-                    this.marker.addEventListener('markerLost', () => {
-                        this.stopAnimation();
-                    });
-                },
-                startAnimation: function() {
-                    if (this.isPlaying) return;
-                    this.isPlaying = true;
-                    this.currentFrame = 0;
-                    this.imageEl.setAttribute('src', this.frames[0]);
-
-                    this.intervalId = setInterval(() => {
-                        this.currentFrame = (this.currentFrame + 1) % this.frames.length;
-                        this.imageEl.setAttribute('src', this.frames[this.currentFrame]);
-                    }, this.data.interval);
-                },
-                stopAnimation: function() {
-                    if (!this.isPlaying) return;
-                    this.isPlaying = false;
-                    clearInterval(this.intervalId);
-                    this.imageEl.setAttribute('src', this.frames[0]); // повертаємося до першого кадру
-                },
-                remove: function() {
-                    clearInterval(this.intervalId);
-                }
-            });
-        };
-    </script>
-
-    <!-- Стилі для лоадера -->
     <style>
+        /* Лоадер */
         .arjs-loader {
             height: 100%;
             width: 100%;
@@ -73,12 +23,40 @@
             display: flex;
             justify-content: center;
             align-items: center;
-        }
-        .arjs-loader div {
-            text-align: center;
-            font-size: 1.25em;
             color: white;
+            font-family: Arial, sans-serif;
+            font-size: 1.5em;
         }
+
+        /* Кнопки */
+        #backBtn, #youtubeBtn {
+            position: fixed;
+            bottom: 20px;
+            padding: 12px 24px;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: all 0.2s ease;
+        }
+
+        #backBtn {
+            right: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        }
+
+        #youtubeBtn {
+            left: 20px;
+            background: linear-gradient(45deg, #ff0000, #cc0000);
+        }
+
+        #backBtn:hover, #youtubeBtn:hover {
+            transform: scale(1.05);
+        }
+
         body {
             margin: 0;
             overflow: hidden;
@@ -88,49 +66,62 @@
 <body>
     <!-- Лоадер -->
     <div class="arjs-loader">
-        <div>Loading, please wait...</div>
+        <div>🎃 Завантаження... Тримай маркер наготові!</div>
     </div>
 
-    <!-- AR сцена -->
+    <!-- AR Сцена -->
     <a-scene
         vr-mode-ui="enabled: false"
-        renderer="antialias: true; alpha: true; precision: medium;"
+        renderer="logarithmicDepthBuffer: true; antialias: true;"
         embedded
-        arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+        arjs='trackingMethod: best; sourceType: webcam; facingMode: environment; debugUIEnabled: false;'
+        loading-screen="enabled: false"
     >
-        <!-- Завантаження кадрів анімації -->
-        <a-assets>
-            <!-- Заміни шляхи на свої PNG-файли -->
-            <img id="frame1" src="assets/ghost/1.png" crossorigin="anonymous">
-            <img id="frame2" src="assets/ghost/2.png" crossorigin="anonymous">
-            <img id="frame3" src="assets/ghost/3.png" crossorigin="anonymous">
-            <img id="frame4" src="assets/ghost/4.png" crossorigin="anonymous">
-            <img id="frame5" src="assets/ghost/5.png" crossorigin="anonymous">
-            <img id="frame6" src="assets/ghost/6.png" crossorigin="anonymous">
-            <img id="frame7" src="assets/ghost/7.png" crossorigin="anonymous">
-            <img id="frame8" src="assets/ghost/8.png" crossorigin="anonymous">
-        </a-assets>
-
-        <!-- NFT маркер -->
-        <!-- Заміни 'dataNFT/ghost_marker/ghost_marker' на шлях до твого NFT-маркера -->
+        <!-- NFT-маркер -->
         <a-nft
-            ghost-animator="interval: 120"
             type="nft"
-            url="dataNFT/ghost_marker/ghost_marker"
-            smooth="true" smoothCount="10" smoothTolerance="0.01" smoothThreshold="5"
+            url="./marker"  <!-- Шлях до marker.fset, marker.fset3, marker.iset -->
+            smooth="true"
+            smoothCount="10"
+            smoothTolerance="0.01"
+            smoothThreshold="5"
         >
-            <!-- Зображення, що анімується -->
-            <a-image
-                src="#frame1"
-                position="50 150 -100"
-                rotation="90 0 180"
-                width="300"
-                height="175"
-            ></a-image>
+            <!-- 3D-привид -->
+            <a-entity
+                gltf-model="./ghost.glb"
+                scale="1 1 1"
+                position="0 0 0"
+                rotation="0 180 0"
+            ></a-entity>
         </a-nft>
 
         <!-- Камера -->
         <a-entity camera></a-entity>
     </a-scene>
+
+    <!-- Кнопка "Повернутися" -->
+    <button id="backBtn">⬅️ Повернутися</button>
+
+    <!-- Кнопка на YouTube -->
+    <button id="youtubeBtn" onclick="window.open('https://www.youtube.com/@23SmartLessa32', '_blank')">📺 YouTube</button>
+
+    <script>
+        // Ховаємо лоадер після завантаження сцени
+        AFRAME.registerComponent('hide-loader', {
+            init: function () {
+                const loader = document.querySelector('.arjs-loader');
+                this.el.addEventListener('loaded', () => {
+                    loader.style.display = 'none';
+                });
+            }
+        });
+
+        document.querySelector('a-scene').setAttribute('hide-loader', '');
+
+        // Обробка кнопки "Повернутися"
+        document.getElementById('backBtn').addEventListener('click', () => {
+            location.reload();
+        });
+    </script>
 </body>
 </html>
