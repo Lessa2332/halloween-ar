@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👻 Геловін AR — 3D Привид на Маркері</title>
+    <title>👻 Геловін AR — Привид у просторі</title>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/aframe/build/aframe-ar-nft.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/mflux/aframe-ar-gyro@0.2.1/dist/aframe-ar-gyro.min.js"></script>
 
     <style>
-        /* Лоадер */
+        body { margin: 0; overflow: hidden; }
+
         .arjs-loader {
             height: 100%;
             width: 100%;
@@ -25,9 +26,26 @@
             color: white;
             font-family: Arial, sans-serif;
             font-size: 1.5em;
+            text-align: center;
+            box-sizing: border-box; /* Важливе виправлення */
+            padding: 20px;
         }
 
-        /* Кнопки */
+        #instructions {
+            position: fixed;
+            top: 15%; /* Оптимізуємо позицію */
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            max-width: 80%; /* Щоб текст не виходив за межі екрану */
+        }
+
         #backBtn, #youtubeBtn {
             position: fixed;
             bottom: 20px;
@@ -40,6 +58,7 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             z-index: 1000;
             transition: all 0.2s ease;
+            font-size: 1em;
         }
 
         #backBtn {
@@ -56,59 +75,73 @@
             transform: scale(1.05);
         }
 
-        body {
-            margin: 0;
-            overflow: hidden;
+        /* Медіа-запити для кращої адаптивності на малих екранах */
+        @media (max-width: 600px) {
+            #backBtn, #youtubeBtn {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
         }
     </style>
 </head>
 <body>
     <div class="arjs-loader">
-        <div>🎃 Завантаження... Тримай маркер наготові!</div>
+        <div>🎃 Завантаження...</div>
     </div>
 
+    <div id="instructions">Озирнися, щоб знайти привида!</div>
+
     <a-scene
+        ar-gyro="debug: false"
         vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true; antialias: true;"
-        embedded
-        arjs='trackingMethod: best; sourceType: webcam; facingMode: environment; debugUIEnabled: false;'
         loading-screen="enabled: false"
+        embedded
+        renderer="colorManagement: true; physicallyCorrectLights: true;"
     >
         <a-assets>
             <a-asset-item id="ghost-model" src="./ghost.glb"></a-asset-item>
         </a-assets>
 
-        <a-nft
-            type="nft"
-            url="./marker"
-            smooth="true"
-            smoothCount="10"
-            smoothTolerance="0.01"
-            smoothThreshold="5"
-        >
-            <a-gltf-model
-                src="#ghost-model"
-                scale="1.5 1.5 1.5"
-                position="0 0 0"
-                rotation="0 180 0"
-                animation-mixer
-            ></a-gltf-model>
-        </a-nft>
-
-        <a-entity camera></a-entity>
+        <a-entity camera ar-gyro-camera></a-entity>
+        
+        <a-gltf-model
+            id="ghost"
+            src="#ghost-model"
+            scale="1.5 1.5 1.5"
+            position="0 -1.5 -3"
+            rotation="0 180 0"
+            animation-mixer
+            visible="false"
+        ></a-gltf-model>
     </a-scene>
 
     <button id="backBtn">⬅️ Повернутися</button>
-
     <button id="youtubeBtn" onclick="window.open('https://www.youtube.com/@23SmartLessa32', '_blank')">📺 YouTube</button>
 
     <script>
-        // Приховати лоадер, коли модель завантажиться
-        const scene = document.querySelector('a-scene');
-        scene.addEventListener('model-loaded', () => {
+        // Приховати лоадер та показати об'єкт після завантаження моделі
+        const ghostModel = document.getElementById('ghost');
+        ghostModel.addEventListener('model-loaded', () => {
             const loader = document.querySelector('.arjs-loader');
             loader.style.display = 'none';
+            document.getElementById('ghost').setAttribute('visible', 'true');
         });
+
+        // Запит на дозвіл використання гіроскопа на iOS (важливо для гіро-AR)
+        function checkIOS() {
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                document.body.addEventListener('click', function() {
+                    DeviceMotionEvent.requestPermission()
+                        .then(response => {
+                            if (response == 'granted') {
+                                window.addEventListener('devicemotion', (e) => {});
+                            }
+                        })
+                        .catch(console.error);
+                }, {once: true});
+            }
+        }
+        window.addEventListener('load', checkIOS);
 
         // Обробка кнопки "Повернутися"
         document.getElementById('backBtn').addEventListener('click', () => {
