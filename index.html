@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>👻 Геловін AR — 3D Привид на Маркері</title>
 
-    <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <!-- AR.js -->
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@master/aframe/build/aframe-ar-nft.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
     <style>
         /* Лоадер */
@@ -64,59 +63,52 @@
     </style>
 </head>
 <body>
-    <!-- Лоадер -->
     <div class="arjs-loader">
         <div>🎃 Завантаження... Тримай маркер наготові!</div>
     </div>
 
-    <!-- AR Сцена -->
     <a-scene
         vr-mode-ui="enabled: false"
         renderer="logarithmicDepthBuffer: true; antialias: true;"
         embedded
-        arjs='trackingMethod: best; sourceType: webcam; facingMode: environment; debugUIEnabled: true;'
+        arjs='trackingMethod: best; sourceType: webcam; facingMode: environment; debugUIEnabled: false;'
         loading-screen="enabled: false"
     >
-        <!-- NFT-маркер -->
+        <a-assets>
+            <a-asset-item id="ghost-model" src="./ghost.glb"></a-asset-item>
+        </a-assets>
+
         <a-nft
             type="nft"
-            url="./marker"  <!-- Шлях до marker.fset, marker.fset3, marker.iset -->
+            url="./marker"
             smooth="true"
             smoothCount="10"
             smoothTolerance="0.01"
             smoothThreshold="5"
         >
-            <!-- Червоний квадратний блок -->
-            <a-box
-                color="red"
-                scale="1 1 1"
-                position="0 0.5 0"
-                rotation="0 0 0"
-            ></a-box>
+            <a-gltf-model
+                src="#ghost-model"
+                scale="1.5 1.5 1.5"
+                position="0 0 0"
+                rotation="0 180 0"
+                animation-mixer
+            ></a-gltf-model>
         </a-nft>
 
-        <!-- Камера -->
         <a-entity camera></a-entity>
     </a-scene>
 
-    <!-- Кнопка "Повернутися" -->
     <button id="backBtn">⬅️ Повернутися</button>
 
-    <!-- Кнопка на YouTube -->
     <button id="youtubeBtn" onclick="window.open('https://www.youtube.com/@23SmartLessa32', '_blank')">📺 YouTube</button>
 
     <script>
-        // Ховаємо лоадер після завантаження сцени
-        AFRAME.registerComponent('hide-loader', {
-            init: function () {
-                const loader = document.querySelector('.arjs-loader');
-                this.el.addEventListener('loaded', () => {
-                    loader.style.display = 'none';
-                });
-            }
+        // Приховати лоадер, коли модель завантажиться
+        const scene = document.querySelector('a-scene');
+        scene.addEventListener('model-loaded', () => {
+            const loader = document.querySelector('.arjs-loader');
+            loader.style.display = 'none';
         });
-
-        document.querySelector('a-scene').setAttribute('hide-loader', '');
 
         // Обробка кнопки "Повернутися"
         document.getElementById('backBtn').addEventListener('click', () => {
