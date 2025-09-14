@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="uk">
 <head>
@@ -27,13 +28,13 @@
             font-family: Arial, sans-serif;
             font-size: 1.5em;
             text-align: center;
-            box-sizing: border-box; /* Важливе виправлення */
+            box-sizing: border-box;
             padding: 20px;
         }
 
         #instructions {
             position: fixed;
-            top: 15%; /* Оптимізуємо позицію */
+            top: 15%;
             left: 50%;
             transform: translateX(-50%);
             padding: 10px 20px;
@@ -43,7 +44,7 @@
             z-index: 1000;
             text-align: center;
             font-family: Arial, sans-serif;
-            max-width: 80%; /* Щоб текст не виходив за межі екрану */
+            max-width: 80%;
         }
 
         #backBtn, #youtubeBtn {
@@ -75,7 +76,6 @@
             transform: scale(1.05);
         }
 
-        /* Медіа-запити для кращої адаптивності на малих екранах */
         @media (max-width: 600px) {
             #backBtn, #youtubeBtn {
                 padding: 10px 20px;
@@ -86,10 +86,10 @@
 </head>
 <body>
     <div class="arjs-loader">
-        <div>🎃 Завантаження...</div>
+        <div>👻 Завантаження привида...</div>
     </div>
 
-    <div id="instructions">Озирнися, щоб знайти привида!</div>
+    <div id="instructions"></div>
 
     <a-scene
         ar-gyro="debug: false"
@@ -107,41 +107,58 @@
         <a-gltf-model
             id="ghost"
             src="#ghost-model"
-            scale="1.5 1.5 1.5"
             position="0 -1.5 -3"
             rotation="0 180 0"
             animation-mixer
             visible="false"
-        ></a-gltf-model>
+            scale="0.01 0.01 0.01"
+        >
+        <a-animation
+            attribute="scale"
+            from="0.01 0.01 0.01"
+            to="1.5 1.5 1.5"
+            dur="1500"
+            easing="ease-in-out-cubic"
+            fill="forwards"
+        ></a-animation>
+        </a-gltf-model>
     </a-scene>
 
     <button id="backBtn">⬅️ Повернутися</button>
     <button id="youtubeBtn" onclick="window.open('https://www.youtube.com/@23SmartLessa32', '_blank')">📺 YouTube</button>
 
     <script>
-        // Приховати лоадер та показати об'єкт після завантаження моделі
-        const ghostModel = document.getElementById('ghost');
-        ghostModel.addEventListener('model-loaded', () => {
-            const loader = document.querySelector('.arjs-loader');
-            loader.style.display = 'none';
-            document.getElementById('ghost').setAttribute('visible', 'true');
-        });
+        const instructions = document.getElementById('instructions');
+        
+        // Початковий текст інструкцій
+        instructions.textContent = '👻 Завантаження...';
 
-        // Запит на дозвіл використання гіроскопа на iOS (важливо для гіро-AR)
+        // Запит на дозвіл для iOS (важливо!)
         function checkIOS() {
             if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                instructions.textContent = 'Натисніть будь-де, щоб почати.';
                 document.body.addEventListener('click', function() {
                     DeviceMotionEvent.requestPermission()
                         .then(response => {
                             if (response == 'granted') {
-                                window.addEventListener('devicemotion', (e) => {});
+                                instructions.textContent = '👻 Озирнися, щоб знайти привида!';
+                            } else {
+                                instructions.textContent = '❌ Дозвіл відхилено. Гіроскоп не працюватиме.';
                             }
                         })
                         .catch(console.error);
                 }, {once: true});
+            } else {
+                instructions.textContent = '👻 Озирнися, щоб знайти привида!';
             }
         }
         window.addEventListener('load', checkIOS);
+
+        const ghostModel = document.getElementById('ghost');
+        ghostModel.addEventListener('model-loaded', () => {
+            document.querySelector('.arjs-loader').style.display = 'none';
+            document.getElementById('ghost').setAttribute('visible', 'true');
+        });
 
         // Обробка кнопки "Повернутися"
         document.getElementById('backBtn').addEventListener('click', () => {
