@@ -1,208 +1,254 @@
-
 <!DOCTYPE html>
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👻 Геловін AR — Привид у просторі</title>
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="AR-сцена з планетою для дітей">
+    <title>🌍 Мир на долоні 🎈</title>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/mflux/aframe-ar-gyro@0.2.1/dist/aframe-ar-gyro.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
 
     <style>
-        body { margin: 0; overflow: hidden; background-color: black; }
-
-        .arjs-loader {
-            height: 100%;
-            width: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            background-color: rgba(0, 0, 0, 0.8);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-family: Arial, sans-serif;
-            font-size: 1.5em;
-            text-align: center;
-            box-sizing: border-box;
-            padding: 20px;
-        }
-
-        #startBtn {
-            margin-top: 20px;
-            padding: 15px 30px;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: white;
-            background-color: #ff5722;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-            transition: transform 0.2s, background-color 0.2s;
-        }
-
-        #startBtn:hover {
-            transform: scale(1.05);
-            background-color: #e64a19;
-        }
-
-        #instructions {
-            position: fixed;
-            top: 15%;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 20px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            border-radius: 10px;
-            z-index: 1000;
-            text-align: center;
-            font-family: Arial, sans-serif;
-            max-width: 80%;
-            display: none;
-        }
-
-        #backBtn, #youtubeBtn {
-            position: fixed;
-            bottom: 20px;
-            padding: 12px 24px;
-            color: white;
-            border: none;
-            border-radius: 30px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 1000;
-            transition: all 0.2s ease;
-            font-size: 1em;
-        }
-
-        #backBtn {
-            right: 20px;
-            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
-        }
-
-        #youtubeBtn {
-            left: 20px;
-            background: linear-gradient(45deg, #ff0000, #cc0000);
-        }
-
-        #backBtn:hover, #youtubeBtn:hover {
-            transform: scale(1.05);
-        }
-
-        @media (max-width: 600px) {
-            #backBtn, #youtubeBtn {
-                padding: 10px 20px;
-                font-size: 0.9em;
-            }
-        }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+        a-scene { width: 100% !important; height: 100% !important; position: fixed; top: 0; left: 0; background: transparent; }
+        .arjs-loader { height: 100%; width: 100%; position: absolute; top: 0; left: 0; background: rgba(135, 206, 235, 0.2); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #FF4500; font-size: 1.8em; text-align: center; padding: 20px; box-sizing: border-box; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .pulse { animation: pulse 1.5s infinite; }
+        .controls { position: absolute; bottom: 20px; left: 20px; z-index: 10000; }
+        .sound-btn, .youtube-btn { padding: 10px 20px; margin-right: 10px; border: none; border-radius: 15px; cursor: pointer; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; font-size: 1em; }
+        .sound-btn { background-color: #4CAF50; color: white; }
+        .sound-btn.off { background-color: #f44336; }
+        .youtube-btn { background-color: #FF9800; color: white; text-decoration: none; display: inline-block; }
+        .youtube-btn:hover { background-color: #FFB300; }
     </style>
 </head>
 <body>
-    <div class="arjs-loader">
-        <div>👻 Ласкаво просимо!</div>
-        <button id="startBtn">Запустити AR</button>
+    <div class="arjs-loader" id="loader">
+        <div class="pulse">🌍 Мир на долоні 🎈</div>
+        <div style="margin-top: 20px; font-size: 1.2em;">Підніми руку перед камерою! 😊🎨</div>
     </div>
 
-    <div id="instructions"></div>
-
     <a-scene
-        id="ar-scene"
-        ar-gyro="debug: false"
+        mindar-image="imageTargetSrc: ./my-marker.mind;"
         vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
         loading-screen="enabled: false"
         embedded
         renderer="colorManagement: true; physicallyCorrectLights: true;"
-        style="visibility: hidden; height: 100vh; width: 100vw;"
     >
         <a-assets>
-            <a-asset-item id="ghost-model" src="./ghost.glb"></a-asset-item>
+            <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
         </a-assets>
 
-        <a-entity camera ar-gyro-camera></a-entity>
-        
-        <a-gltf-model
-            id="ghost"
-            src="#ghost-model"
-            position="0 -1.5 -3"
-            rotation="0 180 0"
-            animation-mixer
-            visible="false"
-            scale="0.01 0.01 0.01"
-        >
-        <a-animation
-            attribute="scale"
-            from="0.01 0.01 0.01"
-            to="1.5 1.5 1.5"
-            dur="1500"
-            easing="ease-in-out-cubic"
-            fill="forwards"
-        ></a-animation>
-        </a-gltf-model>
+        <a-camera
+            id="camera"
+            look-controls="enabled: false"
+            position="0 0 0"
+        ></a-camera>
+
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-sphere
+                id="hand-planet"
+                position="0 0 -0.5"
+                radius="0.2"
+                src="./earth.jpg"
+                visible="false"
+            >
+                <a-animation
+                    attribute="rotation"
+                    to="0 360 0"
+                    dur="5000"
+                    repeat="indefinite"
+                    begin="fly"
+                ></a-animation>
+            </a-sphere>
+        </a-entity>
     </a-scene>
 
-    <button id="backBtn">⬅️ Повернутися</button>
-    <button id="youtubeBtn" onclick="window.open('https://www.youtube.com/@23SmartLessa32', '_blank')">📺 YouTube</button>
+    <div class="controls">
+        <button id="sound-btn" class="sound-btn">Увімкнути звук</button>
+        <a href="https://www.youtube.com/playlist?list=PL6UDFwT9TzFw5K8Tzu_OgsDz7vV3N9eY-" target="_blank" class="youtube-btn">YouTube SmartLessa</a>
+    </div>
 
     <script>
-        const instructions = document.getElementById('instructions');
-        const loader = document.querySelector('.arjs-loader');
-        const startBtn = document.getElementById('startBtn');
-        const arScene = document.getElementById('ar-scene');
+        function fixHeight() { document.body.style.height = window.innerHeight + 'px'; }
+        fixHeight();
+        window.addEventListener('resize', fixHeight);
 
-        // Логіка запуску AR при кліку на кнопку
-        startBtn.addEventListener('click', () => {
-            // Ховаємо лоадер і кнопку
-            loader.style.display = 'none';
-            // Робимо AR-сцену видимою
-            arScene.style.visibility = 'visible';
-            
-            // На цій дії браузер має запитати дозвіл на камеру
-            // Ми просто дозволяємо A-Frame ініціюватись
+        const loader = document.querySelector('#loader');
+        const targetEntity = document.querySelector('[mindar-image-target]');
+        const planet = document.querySelector('#hand-planet');
+        const bgMusic = document.querySelector('#bg-music');
+        const soundBtn = document.querySelector('#sound-btn');
+        let handDetected = false;
+        let handPosition = { x: 0, y: 0, z: 0 };
+        let lastMoveTime = 0;
+        const MOVE_THRESHOLD = 0.05; // Поріг руху
+        const STILL_TIME = 1000; // 1 секунда спокою
+
+        if (targetEntity) {
+            targetEntity.addEventListener('targetFound', () => {
+                console.log("🎯 Маркер знайдено! Планета з\'явилася.");
+                loader.style.display = 'none';
+                if (planet) planet.setAttribute('visible', 'true');
+                if (bgMusic) {
+                    bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                    soundBtn.classList.remove('off');
+                    soundBtn.textContent = 'Вимкнути звук';
+                }
+                startHandTracking();
+            });
+
+            targetEntity.addEventListener('targetLost', () => {
+                console.log("ℹ️ Маркер втрачено.");
+                loader.style.display = 'block';
+                if (planet) planet.setAttribute('visible', 'false');
+                if (bgMusic) bgMusic.pause();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("✅ DOM завантажено");
+            const scene = document.querySelector('a-scene');
+            if (!scene) console.error("❌ Сцена A-Frame не знайдена");
         });
 
-        // Чекаємо, поки сцена буде готова (включно з камерою)
-        arScene.addEventListener('loaded', () => {
-            // Тепер показуємо інструкції
-            instructions.style.display = 'block';
-            instructions.textContent = '👻 Озирнися, щоб знайти привида!';
+        soundBtn.addEventListener('click', () => {
+            if (bgMusic.paused) {
+                bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                soundBtn.classList.remove('off');
+                soundBtn.textContent = 'Вимкнути звук';
+            } else {
+                bgMusic.pause();
+                soundBtn.classList.add('off');
+                soundBtn.textContent = 'Увімкнути звук';
+            }
         });
 
-        // Запит на дозвіл для iOS (важливо для гіро-AR)
-        function checkIOS() {
-            if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                document.body.addEventListener('click', function() {
-                    DeviceMotionEvent.requestPermission()
-                        .then(response => {
-                            if (response == 'granted') {
-                                instructions.textContent = '👻 Озирнися, щоб знайти привида!';
-                            } else {
-                                instructions.textContent = '❌ Дозвіл відхилено. Гіроскоп не працюватиме.';
+        AFRAME.registerComponent('gesture-handler', {
+            init: function () {
+                document.addEventListener('touchstart', this.onTouchStart.bind(this));
+                document.addEventListener('touchmove', this.onTouchMove.bind(this));
+                document.addEventListener('touchend', this.onTouchEnd.bind(this));
+
+                this.targetRotation = this.el.getAttribute('rotation') || {x: 0, y: 0, z: 0};
+                this.initialScale = this.el.object3D.scale.x;
+                this.previousTouchDistance = 0;
+                this.isRotating = false;
+                this.isPinching = false;
+                this.startX = 0;
+                this.startY = 0;
+            },
+            onTouchStart: function (evt) {
+                console.log("👆 Touch start:", evt.touches.length, "fingers");
+                if (evt.touches.length === 1) {
+                    this.isRotating = true;
+                    this.startX = evt.touches[0].pageX;
+                    this.startY = evt.touches[0].pageY;
+                } else if (evt.touches.length === 2) {
+                    this.isPinching = true;
+                    this.previousTouchDistance = Math.hypot(
+                        evt.touches[0].pageX - evt.touches[1].pageX,
+                        evt.touches[0].pageY - evt.touches[1].pageY
+                    );
+                    this.initialScale = this.el.object3D.scale.x;
+                    console.log("📏 Initial pinch distance:", this.previousTouchDistance);
+                }
+            },
+            onTouchMove: function (evt) {
+                console.log("👉 Touch move:", evt.touches.length, "fingers");
+                evt.preventDefault();
+                if (this.isRotating && evt.touches.length === 1) {
+                    const deltaX = evt.touches[0].pageX - this.startX;
+                    const deltaY = evt.touches[0].pageY - this.startY;
+                    this.targetRotation.y += deltaX * 0.5;
+                    this.targetRotation.x += deltaY * 0.5;
+                    this.el.setAttribute('rotation', `${this.targetRotation.x} ${this.targetRotation.y} 0`);
+                    this.startX = evt.touches[0].pageX;
+                    this.startY = evt.touches[0].pageY;
+                } else if (this.isPinching && evt.touches.length === 2) {
+                    const currentTouchDistance = Math.hypot(
+                        evt.touches[0].pageX - evt.touches[1].pageX,
+                        evt.touches[0].pageY - evt.touches[1].pageY
+                    );
+                    console.log("📏 Current pinch distance:", currentTouchDistance);
+                    const scaleFactor = currentTouchDistance / this.previousTouchDistance;
+                    const newScale = Math.max(0.5, Math.min(3, this.initialScale * scaleFactor));
+                    this.el.setAttribute('scale', `${newScale} ${newScale} ${newScale}`);
+                    this.previousTouchDistance = currentTouchDistance;
+                    console.log("🔍 New scale:", newScale);
+                }
+            },
+            onTouchEnd: function (evt) {
+                console.log("✋ Touch end:", evt.touches.length, "fingers");
+                if (evt.touches.length === 0) {
+                    this.isRotating = false;
+                    this.isPinching = false;
+                }
+            }
+        });
+
+        function startHandTracking() {
+            const video = document.createElement('video');
+            video.width = 640;
+            video.height = 480;
+            video.autoplay = true;
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    video.srcObject = stream;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 640;
+                    canvas.height = 480;
+                    const ctx = canvas.getContext('2d');
+
+                    function detectHand() {
+                        ctx.drawImage(video, 0, 0, 640, 480);
+                        const imageData = ctx.getImageData(0, 0, 640, 480);
+                        const pixels = imageData.data;
+                        let handFound = false;
+                        for (let i = 0; i < pixels.length; i += 4) {
+                            const r = pixels[i];
+                            const g = pixels[i + 1];
+                            const b = pixels[i + 2];
+                            if (r > 200 && g > 150 && b > 150) { // Просте виявлення шкіри
+                                handFound = true;
+                                break;
                             }
-                        })
-                        .catch(console.error);
-                }, {once: true});
+                        }
+                        updatePlanet(handFound);
+                        requestAnimationFrame(detectHand);
+                    }
+                    detectHand();
+                })
+                .catch(err => console.error("Помилка камери:", err));
+        }
+
+        function updatePlanet(handDetected) {
+            if (handDetected && !planet.getAttribute('visible')) {
+                planet.setAttribute('visible', 'true');
+                planet.setAttribute('position', '0 0 -0.5'); // Планета на долоні
+                lastMoveTime = Date.now();
+            } else if (!handDetected && planet.getAttribute('visible')) {
+                planet.setAttribute('visible', 'false');
+            }
+
+            const currentTime = Date.now();
+            const dx = Math.abs(handPosition.x - (event?.touches?.[0]?.pageX || 0) / window.innerWidth);
+            const dy = Math.abs(handPosition.y - (event?.touches?.[0]?.pageY || 0) / window.innerHeight);
+            handPosition = { x: (event?.touches?.[0]?.pageX || 0) / window.innerWidth, y: (event?.touches?.[0]?.pageY || 0) / window.innerHeight };
+
+            if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+                lastMoveTime = currentTime;
+                if (planet.getAttribute('visible')) {
+                    planet.emit('fly');
+                    planet.setAttribute('position', `${Math.sin(currentTime / 1000) * 0.2} ${Math.cos(currentTime / 1000) * 0.2} -0.5`);
+                }
+            } else if (currentTime - lastMoveTime > STILL_TIME && planet.getAttribute('visible')) {
+                planet.removeAttribute('animation__fly');
+                planet.setAttribute('position', '0 0 -0.5');
             }
         }
-        
-        // Виклик функції перевірки дозволів
-        window.addEventListener('load', checkIOS);
-
-        const ghostModel = document.getElementById('ghost');
-        ghostModel.addEventListener('model-loaded', () => {
-            document.getElementById('ghost').setAttribute('visible', 'true');
-        });
-
-        document.getElementById('backBtn').addEventListener('click', () => {
-            location.reload();
-        });
     </script>
 </body>
 </html>
