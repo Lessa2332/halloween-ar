@@ -9,8 +9,7 @@
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://unpkg.com/aframe-particle-system-component@1.1.2/dist/aframe-particle-system-component.min.js"></script>
-    
+
     <style>
         html, body {
             margin: 0;
@@ -102,7 +101,6 @@
         <a-assets>
             <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
             <img id="earth-texture" src="./earth.jpg">
-            <img id="heart-texture" src="https://raw.githubusercontent.com/Lessa2332/worldplay/main/heart.png">
         </a-assets>
 
         <a-camera
@@ -114,7 +112,7 @@
         <a-entity mindar-image-target="targetIndex: 0">
             <a-sphere
                 id="hand-planet"
-                gesture-handler
+                gesture-handler="rotationSpeed: 1; minScale: 0.2; maxScale: 2.0"
                 position="0 0 -0.5"
                 radius="0.4"
                 src="#earth-texture"
@@ -127,24 +125,6 @@
                     repeat="indefinite"
                 ></a-animation>
             </a-sphere>
-
-            <a-entity id="particles"
-                position="0 0 -0.5"
-                visible="false"
-                particle-system="
-                    preset: custom;
-                    texture: #heart-texture;
-                    maxAge: 1;
-                    particleCount: 20;
-                    size: 0.1;
-                    velocitySpread: 0.5 0.5 0.5;
-                    accelerationSpread: 0 0.5 0;
-                    color: #00BFFF, #FFD700;
-                    blending: 1;
-                    duration: 0.5;
-                    loop: false;
-                "
-            ></a-entity>
         </a-entity>
     </a-scene>
 
@@ -165,14 +145,15 @@
         const planet = document.querySelector('#hand-planet');
         const bgMusic = document.querySelector('#bg-music');
         const soundBtn = document.querySelector('#sound-btn');
-        const particles = document.querySelector('#particles');
 
+        // Логіка відстеження маркера
         if (targetEntity) {
             targetEntity.addEventListener('targetFound', () => {
+                console.log("🎯 Маркер знайдено! Планета з'явилася.");
                 loader.style.display = 'none';
                 if (planet) {
                     planet.setAttribute('visible', 'true');
-                    // Зупиняємо стандартну анімацію, щоб вона не заважала ручному керуванню
+                    console.log("Планета видима:", planet.getAttribute('visible'));
                     planet.components.animation.pause();
                 }
                 if (bgMusic && bgMusic.paused) {
@@ -183,9 +164,10 @@
             });
 
             targetEntity.addEventListener('targetLost', () => {
+                console.log("ℹ️ Маркер втрачено.");
                 if (planet) {
                     planet.setAttribute('visible', 'false');
-                    // Відновлюємо стандартну анімацію, якщо потрібно
+                    console.log("Планета невидима:", planet.getAttribute('visible'));
                     planet.components.animation.play();
                 }
                 if (bgMusic && !bgMusic.paused) bgMusic.pause();
@@ -211,42 +193,35 @@
         // Компонент для обробки жестів (обертання та масштабування)
         AFRAME.registerComponent('gesture-handler', {
             schema: {
-                minScale: { type: 'number', default: 0.1 },
-                maxScale: { type: 'number', default: 1.0 },
-                rotationSpeed: { type: 'number', default: 0.5 }
+                minScale: { type: 'number', default: 0.2 },
+                maxScale: { type: 'number', default: 2.0 },
+                rotationSpeed: { type: 'number', default: 1 }
             },
             init: function () {
-                const self = this;
                 this.isRotating = false;
                 this.isPinching = false;
                 this.startPos = { x: 0, y: 0 };
                 this.currentScale = this.el.object3D.scale.x;
 
-                // Play particle effect on touch and emit an event for animation
-                const onDown = (e) => {
-                    self.el.emit('touch'); // Запускаємо анімацію пульсації
-                    self.playParticles(); // Запускаємо ефект частинок
-                };
+                const self = this;
                 
-                this.el.addEventListener('mousedown', onDown);
-                this.el.addEventListener('touchstart', onDown);
-
-                // Mouse handlers for rotation and pinch
-                const onMouseDown = (e) => {
+                // Mouse handlers
+                this.el.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
                     self.isRotating = true;
                     self.startPos.x = e.pageX;
                     self.startPos.y = e.pageY;
                     document.addEventListener('mousemove', self.onMouseMove.bind(self));
-                };
-                const onMouseUp = () => {
+                });
+                document.addEventListener('mouseup', () => {
                     self.isRotating = false;
                     document.removeEventListener('mousemove', self.onMouseMove.bind(self));
-                };
-                this.el.addEventListener('mousedown', onMouseDown);
-                document.addEventListener('mouseup', onMouseUp);
-
-                // Touch handlers for rotation and pinch
-                const onTouchStart = (e) => {
+                });
+                
+                // Touch handlers
+                this.el.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    console.log('touchstart triggered', e.touches.length);
                     if (e.touches.length === 1) {
                         self.isRotating = true;
                         self.startPos.x = e.touches[0].pageX;
@@ -261,32 +236,17 @@
                         self.currentScale = self.el.object3D.scale.x;
                     }
                     document.addEventListener('touchmove', self.onTouchMove.bind(self), { passive: false });
-                };
-                const onTouchEnd = () => {
+                });
+                document.addEventListener('touchend', () => {
                     self.isRotating = false;
                     self.isPinching = false;
                     document.removeEventListener('touchmove', self.onTouchMove.bind(self));
-                };
-                this.el.addEventListener('touchstart', onTouchStart);
-                document.addEventListener('touchend', onTouchEnd);
-            },
-
-            // New function to play the particle effect
-            playParticles: function() {
-                const planetPos = this.el.getAttribute('position');
-                particles.setAttribute('position', planetPos);
-                
-                particles.setAttribute('visible', true);
-                
-                const particleSystem = particles.components['particle-system'];
-                if (particleSystem) {
-                    particleSystem.reset();
-                    particleSystem.startParticles();
-                }
+                });
             },
 
             onMouseMove: function (e) {
                 if (this.isRotating) {
+                    e.preventDefault();
                     const deltaX = (e.pageX - this.startPos.x) * this.data.rotationSpeed;
                     const deltaY = (e.pageY - this.startPos.y) * this.data.rotationSpeed;
                     this.el.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
@@ -297,6 +257,8 @@
             },
 
             onTouchMove: function (e) {
+                e.preventDefault();
+                console.log('touchmove triggered', e.touches.length);
                 if (this.isPinching && e.touches.length === 2) {
                     const currentDistance = Math.hypot(
                         e.touches[0].pageX - e.touches[1].pageX,
@@ -318,3 +280,4 @@
     </script>
 </body>
 </html>
+
