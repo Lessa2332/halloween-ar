@@ -97,6 +97,7 @@
         loading-screen="enabled: false"
         embedded
         renderer="colorManagement: true; physicallyCorrectLights: true;"
+        touch-gestures
     >
         <a-assets>
             <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
@@ -109,14 +110,14 @@
             position="0 0 0"
         ></a-camera>
 
-        <a-entity mindar-image-target="targetIndex: 0">
+        <!-- Тимчасово використовуємо <a-entity> замість mindar-image-target для тестування жестів -->
+        <a-entity id="planet-container">
             <a-sphere
                 id="hand-planet"
-                gesture-handler="rotationSpeed: 1; minScale: 0.2; maxScale: 2.0"
                 position="0 0 -0.5"
                 radius="0.4"
                 src="#earth-texture"
-                visible="false"
+                visible="true"
             >
                 <a-animation
                     attribute="rotation"
@@ -141,12 +142,14 @@
 
         // Посилання на елементи
         const loader = document.querySelector('#loader');
-        const targetEntity = document.querySelector('[mindar-image-target]');
+        const planetContainer = document.querySelector('#planet-container');
         const planet = document.querySelector('#hand-planet');
         const bgMusic = document.querySelector('#bg-music');
         const soundBtn = document.querySelector('#sound-btn');
 
-        // Логіка відстеження маркера
+        // Логіка відстеження маркера (тимчасово відключена для тестування)
+        /*
+        const targetEntity = document.querySelector('[mindar-image-target]');
         if (targetEntity) {
             targetEntity.addEventListener('targetFound', () => {
                 console.log("🎯 Маркер знайдено! Планета з'явилася.");
@@ -176,6 +179,7 @@
                 loader.querySelector('div[style]').textContent = 'Наведи камеру на маркер! 😊🎨';
             });
         }
+        */
 
         // Обробка кнопки звуку
         soundBtn.addEventListener('click', () => {
@@ -190,94 +194,67 @@
             }
         });
 
-        // Компонент для обробки жестів (обертання та масштабування)
-        AFRAME.registerComponent('gesture-handler', {
+        // Новий компонент для обробки сенсорних жестів на сцені
+        AFRAME.registerComponent('touch-gestures', {
             schema: {
                 minScale: { type: 'number', default: 0.2 },
                 maxScale: { type: 'number', default: 2.0 },
-                rotationSpeed: { type: 'number', default: 1 }
+                rotationSpeed: { type: 'number', default: 1.5 }
             },
             init: function () {
                 this.isRotating = false;
                 this.isPinching = false;
                 this.startPos = { x: 0, y: 0 };
-                this.currentScale = this.el.object3D.scale.x;
+                this.currentScale = 1;
+                this.planet = document.querySelector('#hand-planet');
 
-                const self = this;
-                
-                // Mouse handlers
-                this.el.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    self.isRotating = true;
-                    self.startPos.x = e.pageX;
-                    self.startPos.y = e.pageY;
-                    document.addEventListener('mousemove', self.onMouseMove.bind(self));
-                });
-                document.addEventListener('mouseup', () => {
-                    self.isRotating = false;
-                    document.removeEventListener('mousemove', self.onMouseMove.bind(self));
-                });
-                
-                // Touch handlers
+                // Додаємо обробники подій до сцени
                 this.el.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     console.log('touchstart triggered', e.touches.length);
                     if (e.touches.length === 1) {
-                        self.isRotating = true;
-                        self.startPos.x = e.touches[0].pageX;
-                        self.startPos.y = e.touches[0].pageY;
+                        this.isRotating = true;
+                        this.startPos.x = e.touches[0].pageX;
+                        this.startPos.y = e.touches[0].pageY;
                     } else if (e.touches.length === 2) {
-                        self.isPinching = true;
-                        self.isRotating = false;
-                        self.initialDistance = Math.hypot(
+                        this.isPinching = true;
+                        this.isRotating = false;
+                        this.initialDistance = Math.hypot(
                             e.touches[0].pageX - e.touches[1].pageX,
                             e.touches[0].pageY - e.touches[1].pageY
                         );
-                        self.currentScale = self.el.object3D.scale.x;
+                        this.currentScale = this.planet.object3D.scale.x;
                     }
-                    document.addEventListener('touchmove', self.onTouchMove.bind(self), { passive: false });
                 });
-                document.addEventListener('touchend', () => {
-                    self.isRotating = false;
-                    self.isPinching = false;
-                    document.removeEventListener('touchmove', self.onTouchMove.bind(self));
-                });
-            },
 
-            onMouseMove: function (e) {
-                if (this.isRotating) {
+                this.el.addEventListener('touchmove', (e) => {
                     e.preventDefault();
-                    const deltaX = (e.pageX - this.startPos.x) * this.data.rotationSpeed;
-                    const deltaY = (e.pageY - this.startPos.y) * this.data.rotationSpeed;
-                    this.el.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
-                    this.el.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
-                    this.startPos.x = e.pageX;
-                    this.startPos.y = e.pageY;
-                }
-            },
+                    console.log('touchmove triggered', e.touches.length);
+                    if (this.isPinching && e.touches.length === 2) {
+                        const currentDistance = Math.hypot(
+                            e.touches[0].pageX - e.touches[1].pageX,
+                            e.touches[0].pageY - e.touches[1].pageY
+                        );
+                        const scaleFactor = currentDistance / this.initialDistance;
+                        const newScale = Math.max(this.data.minScale, Math.min(this.data.maxScale, this.currentScale * scaleFactor));
+                        this.planet.object3D.scale.set(newScale, newScale, newScale);
+                    } else if (this.isRotating && e.touches.length === 1) {
+                        const deltaX = (e.touches[0].pageX - this.startPos.x) * this.data.rotationSpeed;
+                        const deltaY = (e.touches[0].pageY - this.startPos.y) * this.data.rotationSpeed;
+                        this.planet.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
+                        this.planet.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
+                        this.startPos.x = e.touches[0].pageX;
+                        this.startPos.y = e.touches[0].pageY;
+                    }
+                });
 
-            onTouchMove: function (e) {
-                e.preventDefault();
-                console.log('touchmove triggered', e.touches.length);
-                if (this.isPinching && e.touches.length === 2) {
-                    const currentDistance = Math.hypot(
-                        e.touches[0].pageX - e.touches[1].pageX,
-                        e.touches[0].pageY - e.touches[1].pageY
-                    );
-                    const scaleFactor = currentDistance / this.initialDistance;
-                    const newScale = Math.max(this.data.minScale, Math.min(this.data.maxScale, this.currentScale * scaleFactor));
-                    this.el.object3D.scale.set(newScale, newScale, newScale);
-                } else if (this.isRotating && e.touches.length === 1) {
-                    const deltaX = (e.touches[0].pageX - this.startPos.x) * this.data.rotationSpeed;
-                    const deltaY = (e.touches[0].pageY - this.startPos.y) * this.data.rotationSpeed;
-                    this.el.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
-                    this.el.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
-                    this.startPos.x = e.touches[0].pageX;
-                    this.startPos.y = e.touches[0].pageY;
-                }
+                this.el.addEventListener('touchend', () => {
+                    console.log('touchend triggered');
+                    this.isRotating = false;
+                    this.isPinching = false;
+                });
             }
         });
     </script>
 </body>
 </html>
-
