@@ -8,25 +8,86 @@
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
     <style>
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-        a-scene { width: 100% !important; height: 100% !important; position: fixed; top: 0; left: 0; background: transparent; }
-        .arjs-loader { height: 100%; width: 100%; position: absolute; top: 0; left: 0; background: rgba(135, 206, 235, 0.2); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #FF4500; font-size: 1.8em; text-align: center; padding: 20px; box-sizing: border-box; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+        }
+        
+        a-scene {
+            width: 100% !important;
+            height: 100% !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: transparent;
+        }
+
+        .arjs-loader {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: rgba(135, 206, 235, 0.2);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #FF4500;
+            font-size: 1.8em;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
         .pulse { animation: pulse 1.5s infinite; }
-        .controls { position: absolute; bottom: 20px; left: 20px; z-index: 10000; }
-        .sound-btn, .youtube-btn { padding: 10px 20px; margin-right: 10px; border: none; border-radius: 15px; cursor: pointer; font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif; font-size: 1em; }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .sound-btn, .youtube-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: 'Comic Neue', 'Comic Sans MS', cursive, sans-serif;
+            font-size: 1em;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-decoration: none;
+        }
+
         .sound-btn { background-color: #4CAF50; color: white; }
         .sound-btn.off { background-color: #f44336; }
-        .youtube-btn { background-color: #FF9800; color: white; text-decoration: none; display: inline-block; }
+        .youtube-btn { background-color: #FF9800; color: white; }
         .youtube-btn:hover { background-color: #FFB300; }
     </style>
 </head>
 <body>
     <div class="arjs-loader" id="loader">
         <div class="pulse">🌍 Мир на долоні 🎈</div>
-        <div style="margin-top: 20px; font-size: 1.2em;">Підніми руку перед камерою! 😊🎨</div>
+        <div style="margin-top: 20px; font-size: 1.2em;">Наведи камеру на маркер! 😊🎨</div>
     </div>
 
     <a-scene
@@ -39,6 +100,7 @@
     >
         <a-assets>
             <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
+            <img id="earth-texture" src="./earth.jpg">
         </a-assets>
 
         <a-camera
@@ -50,9 +112,10 @@
         <a-entity mindar-image-target="targetIndex: 0">
             <a-sphere
                 id="hand-planet"
+                gesture-handler
                 position="0 0 -0.5"
                 radius="0.2"
-                src="./earth.jpg"
+                src="#earth-texture"
                 visible="false"
             >
                 <a-animation
@@ -60,7 +123,6 @@
                     to="0 360 0"
                     dur="5000"
                     repeat="indefinite"
-                    begin="fly"
                 ></a-animation>
             </a-sphere>
         </a-entity>
@@ -72,48 +134,42 @@
     </div>
 
     <script>
+        // Адаптивність для повного екрану
         function fixHeight() { document.body.style.height = window.innerHeight + 'px'; }
         fixHeight();
         window.addEventListener('resize', fixHeight);
 
+        // Посилання на елементи
         const loader = document.querySelector('#loader');
         const targetEntity = document.querySelector('[mindar-image-target]');
         const planet = document.querySelector('#hand-planet');
         const bgMusic = document.querySelector('#bg-music');
         const soundBtn = document.querySelector('#sound-btn');
-        let handDetected = false;
-        let handPosition = { x: 0, y: 0, z: 0 };
-        let lastMoveTime = 0;
-        const MOVE_THRESHOLD = 0.05; // Поріг руху
-        const STILL_TIME = 1000; // 1 секунда спокою
 
+        // Логіка відстеження маркера
         if (targetEntity) {
             targetEntity.addEventListener('targetFound', () => {
-                console.log("🎯 Маркер знайдено! Планета з\'явилася.");
+                console.log("🎯 Маркер знайдено! Планета з'явилася.");
                 loader.style.display = 'none';
                 if (planet) planet.setAttribute('visible', 'true');
-                if (bgMusic) {
+                if (bgMusic && bgMusic.paused) {
                     bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
                     soundBtn.classList.remove('off');
                     soundBtn.textContent = 'Вимкнути звук';
                 }
-                startHandTracking();
             });
 
             targetEntity.addEventListener('targetLost', () => {
                 console.log("ℹ️ Маркер втрачено.");
-                loader.style.display = 'block';
                 if (planet) planet.setAttribute('visible', 'false');
-                if (bgMusic) bgMusic.pause();
+                if (bgMusic && !bgMusic.paused) bgMusic.pause();
+                loader.style.display = 'flex';
+                loader.querySelector('.pulse').textContent = '🌍 Мир на долоні 🎈';
+                loader.querySelector('div[style]').textContent = 'Наведи камеру на маркер! 😊🎨';
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("✅ DOM завантажено");
-            const scene = document.querySelector('a-scene');
-            if (!scene) console.error("❌ Сцена A-Frame не знайдена");
-        });
-
+        // Обробка кнопки звуку
         soundBtn.addEventListener('click', () => {
             if (bgMusic.paused) {
                 bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
@@ -126,129 +182,95 @@
             }
         });
 
+        // Компонент для обробки жестів (обертання та масштабування)
         AFRAME.registerComponent('gesture-handler', {
+            schema: {
+                initialScale: {type: 'number', default: 0.2}
+            },
             init: function () {
-                document.addEventListener('touchstart', this.onTouchStart.bind(this));
-                document.addEventListener('touchmove', this.onTouchMove.bind(this));
-                document.addEventListener('touchend', this.onTouchEnd.bind(this));
-
-                this.targetRotation = this.el.getAttribute('rotation') || {x: 0, y: 0, z: 0};
-                this.initialScale = this.el.object3D.scale.x;
-                this.previousTouchDistance = 0;
                 this.isRotating = false;
                 this.isPinching = false;
-                this.startX = 0;
-                this.startY = 0;
+                this.initialDistance = 0;
+                this.initialRotation = this.el.getAttribute('rotation');
+                this.initialScale = this.el.getAttribute('scale');
+
+                this.el.addEventListener('mousedown', this.onMouseDown.bind(this));
+                this.el.addEventListener('touchstart', this.onTouchStart.bind(this));
+                document.addEventListener('mouseup', this.onMouseUp.bind(this));
+                document.addEventListener('touchend', this.onTouchEnd.bind(this));
             },
+
+            tick: function () {
+                if (this.isRotating) {
+                    const deltaX = (this.lastX - this.startX) * 0.2;
+                    const deltaY = (this.lastY - this.startY) * 0.2;
+                    this.el.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
+                    this.el.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
+                    this.startX = this.lastX;
+                    this.startY = this.lastY;
+                }
+            },
+
+            onMouseDown: function (evt) {
+                this.isRotating = true;
+                this.startX = evt.pageX;
+                this.startY = evt.pageY;
+                this.lastX = this.startX;
+                this.lastY = this.startY;
+                document.addEventListener('mousemove', this.onMouseMove.bind(this));
+            },
+
+            onMouseUp: function () {
+                this.isRotating = false;
+                document.removeEventListener('mousemove', this.onMouseMove.bind(this));
+            },
+
+            onMouseMove: function (evt) {
+                this.lastX = evt.pageX;
+                this.lastY = evt.pageY;
+            },
+
             onTouchStart: function (evt) {
-                console.log("👆 Touch start:", evt.touches.length, "fingers");
                 if (evt.touches.length === 1) {
                     this.isRotating = true;
                     this.startX = evt.touches[0].pageX;
                     this.startY = evt.touches[0].pageY;
+                    this.lastX = this.startX;
+                    this.lastY = this.startY;
                 } else if (evt.touches.length === 2) {
                     this.isPinching = true;
-                    this.previousTouchDistance = Math.hypot(
+                    this.isRotating = false;
+                    this.initialDistance = Math.hypot(
                         evt.touches[0].pageX - evt.touches[1].pageX,
                         evt.touches[0].pageY - evt.touches[1].pageY
                     );
                     this.initialScale = this.el.object3D.scale.x;
-                    console.log("📏 Initial pinch distance:", this.previousTouchDistance);
+                    document.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
                 }
             },
+
             onTouchMove: function (evt) {
-                console.log("👉 Touch move:", evt.touches.length, "fingers");
-                evt.preventDefault();
-                if (this.isRotating && evt.touches.length === 1) {
-                    const deltaX = evt.touches[0].pageX - this.startX;
-                    const deltaY = evt.touches[0].pageY - this.startY;
-                    this.targetRotation.y += deltaX * 0.5;
-                    this.targetRotation.x += deltaY * 0.5;
-                    this.el.setAttribute('rotation', `${this.targetRotation.x} ${this.targetRotation.y} 0`);
-                    this.startX = evt.touches[0].pageX;
-                    this.startY = evt.touches[0].pageY;
-                } else if (this.isPinching && evt.touches.length === 2) {
-                    const currentTouchDistance = Math.hypot(
+                if (this.isPinching) {
+                    const currentDistance = Math.hypot(
                         evt.touches[0].pageX - evt.touches[1].pageX,
                         evt.touches[0].pageY - evt.touches[1].pageY
                     );
-                    console.log("📏 Current pinch distance:", currentTouchDistance);
-                    const scaleFactor = currentTouchDistance / this.previousTouchDistance;
-                    const newScale = Math.max(0.5, Math.min(3, this.initialScale * scaleFactor));
-                    this.el.setAttribute('scale', `${newScale} ${newScale} ${newScale}`);
-                    this.previousTouchDistance = currentTouchDistance;
-                    console.log("🔍 New scale:", newScale);
+                    const scaleFactor = currentDistance / this.initialDistance;
+                    const newScale = Math.max(0.1, Math.min(3, this.initialScale * scaleFactor));
+                    this.el.object3D.scale.set(newScale, newScale, newScale);
+                } else if (this.isRotating) {
+                    this.lastX = evt.touches[0].pageX;
+                    this.lastY = evt.touches[0].pageY;
                 }
             },
-            onTouchEnd: function (evt) {
-                console.log("✋ Touch end:", evt.touches.length, "fingers");
-                if (evt.touches.length === 0) {
-                    this.isRotating = false;
-                    this.isPinching = false;
-                }
+
+            onTouchEnd: function () {
+                this.isRotating = false;
+                this.isPinching = false;
+                document.removeEventListener('touchmove', this.onTouchMove.bind(this));
             }
         });
-
-        function startHandTracking() {
-            const video = document.createElement('video');
-            video.width = 640;
-            video.height = 480;
-            video.autoplay = true;
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    video.srcObject = stream;
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 640;
-                    canvas.height = 480;
-                    const ctx = canvas.getContext('2d');
-
-                    function detectHand() {
-                        ctx.drawImage(video, 0, 0, 640, 480);
-                        const imageData = ctx.getImageData(0, 0, 640, 480);
-                        const pixels = imageData.data;
-                        let handFound = false;
-                        for (let i = 0; i < pixels.length; i += 4) {
-                            const r = pixels[i];
-                            const g = pixels[i + 1];
-                            const b = pixels[i + 2];
-                            if (r > 200 && g > 150 && b > 150) { // Просте виявлення шкіри
-                                handFound = true;
-                                break;
-                            }
-                        }
-                        updatePlanet(handFound);
-                        requestAnimationFrame(detectHand);
-                    }
-                    detectHand();
-                })
-                .catch(err => console.error("Помилка камери:", err));
-        }
-
-        function updatePlanet(handDetected) {
-            if (handDetected && !planet.getAttribute('visible')) {
-                planet.setAttribute('visible', 'true');
-                planet.setAttribute('position', '0 0 -0.5'); // Планета на долоні
-                lastMoveTime = Date.now();
-            } else if (!handDetected && planet.getAttribute('visible')) {
-                planet.setAttribute('visible', 'false');
-            }
-
-            const currentTime = Date.now();
-            const dx = Math.abs(handPosition.x - (event?.touches?.[0]?.pageX || 0) / window.innerWidth);
-            const dy = Math.abs(handPosition.y - (event?.touches?.[0]?.pageY || 0) / window.innerHeight);
-            handPosition = { x: (event?.touches?.[0]?.pageX || 0) / window.innerWidth, y: (event?.touches?.[0]?.pageY || 0) / window.innerHeight };
-
-            if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
-                lastMoveTime = currentTime;
-                if (planet.getAttribute('visible')) {
-                    planet.emit('fly');
-                    planet.setAttribute('position', `${Math.sin(currentTime / 1000) * 0.2} ${Math.cos(currentTime / 1000) * 0.2} -0.5`);
-                }
-            } else if (currentTime - lastMoveTime > STILL_TIME && planet.getAttribute('visible')) {
-                planet.removeAttribute('animation__fly');
-                planet.setAttribute('position', '0 0 -0.5');
-            }
-        }
     </script>
 </body>
 </html>
+
