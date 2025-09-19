@@ -151,7 +151,11 @@
             targetEntity.addEventListener('targetFound', () => {
                 console.log("🎯 Маркер знайдено! Планета з'явилася.");
                 loader.style.display = 'none';
-                if (planet) planet.setAttribute('visible', 'true');
+                if (planet) {
+                    planet.setAttribute('visible', 'true');
+                    // Додатково зупиняємо стандартну анімацію, щоб не конфліктувала з обертанням від жестів
+                    planet.components.animation.pause();
+                }
                 if (bgMusic && bgMusic.paused) {
                     bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
                     soundBtn.classList.remove('off');
@@ -161,10 +165,14 @@
 
             targetEntity.addEventListener('targetLost', () => {
                 console.log("ℹ️ Маркер втрачено.");
-                if (planet) planet.setAttribute('visible', 'false');
+                if (planet) {
+                    planet.setAttribute('visible', 'false');
+                    // Відновлюємо стандартну анімацію, якщо потрібно
+                    planet.components.animation.play();
+                }
                 if (bgMusic && !bgMusic.paused) bgMusic.pause();
                 loader.style.display = 'flex';
-                loader.querySelector('.pulse').textContent = '🌍 Мир на долоні 🎈';
+                loader.querySelector('.pulse').textContent = '🌍 Світ на долоні 🎈';
                 loader.querySelector('div[style]').textContent = 'Наведи камеру на маркер! 😊🎨';
             });
         }
@@ -185,92 +193,84 @@
         // Компонент для обробки жестів (обертання та масштабування)
         AFRAME.registerComponent('gesture-handler', {
             schema: {
-                initialScale: {type: 'number', default: 0.2}
+                minScale: { type: 'number', default: 0.1 },
+                maxScale: { type: 'number', default: 1.0 },
+                rotationSpeed: { type: 'number', default: 0.5 }
             },
             init: function () {
                 this.isRotating = false;
                 this.isPinching = false;
-                this.initialDistance = 0;
-                this.initialRotation = this.el.getAttribute('rotation');
-                this.initialScale = this.el.getAttribute('scale');
+                this.startPos = { x: 0, y: 0 };
+                this.currentScale = this.el.object3D.scale.x;
 
-                this.el.addEventListener('mousedown', this.onMouseDown.bind(this));
-                this.el.addEventListener('touchstart', this.onTouchStart.bind(this));
-                document.addEventListener('mouseup', this.onMouseUp.bind(this));
-                document.addEventListener('touchend', this.onTouchEnd.bind(this));
+                const self = this;
+                
+                // Mouse handlers
+                this.el.addEventListener('mousedown', (e) => {
+                    self.isRotating = true;
+                    self.startPos.x = e.pageX;
+                    self.startPos.y = e.pageY;
+                    document.addEventListener('mousemove', self.onMouseMove.bind(self));
+                });
+                document.addEventListener('mouseup', () => {
+                    self.isRotating = false;
+                    document.removeEventListener('mousemove', self.onMouseMove.bind(self));
+                });
+                
+                // Touch handlers
+                this.el.addEventListener('touchstart', (e) => {
+                    if (e.touches.length === 1) {
+                        self.isRotating = true;
+                        self.startPos.x = e.touches[0].pageX;
+                        self.startPos.y = e.touches[0].pageY;
+                    } else if (e.touches.length === 2) {
+                        self.isPinching = true;
+                        self.isRotating = false;
+                        self.initialDistance = Math.hypot(
+                            e.touches[0].pageX - e.touches[1].pageX,
+                            e.touches[0].pageY - e.touches[1].pageY
+                        );
+                        self.currentScale = self.el.object3D.scale.x;
+                    }
+                    document.addEventListener('touchmove', self.onTouchMove.bind(self), { passive: false });
+                });
+                document.addEventListener('touchend', () => {
+                    self.isRotating = false;
+                    self.isPinching = false;
+                    document.removeEventListener('touchmove', self.onTouchMove.bind(self));
+                });
             },
 
-            tick: function () {
+            onMouseMove: function (e) {
                 if (this.isRotating) {
-                    const deltaX = (this.lastX - this.startX) * 0.2;
-                    const deltaY = (this.lastY - this.startY) * 0.2;
+                    const deltaX = (e.pageX - this.startPos.x) * this.data.rotationSpeed;
+                    const deltaY = (e.pageY - this.startPos.y) * this.data.rotationSpeed;
                     this.el.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
                     this.el.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
-                    this.startX = this.lastX;
-                    this.startY = this.lastY;
+                    this.startPos.x = e.pageX;
+                    this.startPos.y = e.pageY;
                 }
             },
 
-            onMouseDown: function (evt) {
-                this.isRotating = true;
-                this.startX = evt.pageX;
-                this.startY = evt.pageY;
-                this.lastX = this.startX;
-                this.lastY = this.startY;
-                document.addEventListener('mousemove', this.onMouseMove.bind(this));
-            },
-
-            onMouseUp: function () {
-                this.isRotating = false;
-                document.removeEventListener('mousemove', this.onMouseMove.bind(this));
-            },
-
-            onMouseMove: function (evt) {
-                this.lastX = evt.pageX;
-                this.lastY = evt.pageY;
-            },
-
-            onTouchStart: function (evt) {
-                if (evt.touches.length === 1) {
-                    this.isRotating = true;
-                    this.startX = evt.touches[0].pageX;
-                    this.startY = evt.touches[0].pageY;
-                    this.lastX = this.startX;
-                    this.lastY = this.startY;
-                } else if (evt.touches.length === 2) {
-                    this.isPinching = true;
-                    this.isRotating = false;
-                    this.initialDistance = Math.hypot(
-                        evt.touches[0].pageX - evt.touches[1].pageX,
-                        evt.touches[0].pageY - evt.touches[1].pageY
-                    );
-                    this.initialScale = this.el.object3D.scale.x;
-                    document.addEventListener('touchmove', this.onTouchMove.bind(this), { passive: false });
-                }
-            },
-
-            onTouchMove: function (evt) {
-                if (this.isPinching) {
+            onTouchMove: function (e) {
+                if (this.isPinching && e.touches.length === 2) {
                     const currentDistance = Math.hypot(
-                        evt.touches[0].pageX - evt.touches[1].pageX,
-                        evt.touches[0].pageY - evt.touches[1].pageY
+                        e.touches[0].pageX - e.touches[1].pageX,
+                        e.touches[0].pageY - e.touches[1].pageY
                     );
                     const scaleFactor = currentDistance / this.initialDistance;
-                    const newScale = Math.max(0.1, Math.min(3, this.initialScale * scaleFactor));
+                    const newScale = Math.max(this.data.minScale, Math.min(this.data.maxScale, this.currentScale * scaleFactor));
                     this.el.object3D.scale.set(newScale, newScale, newScale);
-                } else if (this.isRotating) {
-                    this.lastX = evt.touches[0].pageX;
-                    this.lastY = evt.touches[0].pageY;
+                } else if (this.isRotating && e.touches.length === 1) {
+                    const deltaX = (e.touches[0].pageX - this.startPos.x) * this.data.rotationSpeed;
+                    const deltaY = (e.touches[0].pageY - this.startPos.y) * this.data.rotationSpeed;
+                    this.el.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
+                    this.el.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
+                    this.startPos.x = e.touches[0].pageX;
+                    this.startPos.y = e.touches[0].pageY;
                 }
-            },
-
-            onTouchEnd: function () {
-                this.isRotating = false;
-                this.isPinching = false;
-                document.removeEventListener('touchmove', this.onTouchMove.bind(this));
             }
         });
     </script>
 </body>
 </html>
-
