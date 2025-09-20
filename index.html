@@ -116,7 +116,6 @@
                 position="0 0 -0.5"
                 radius="0.4"
                 src="#earth-texture"
-                color="#0000FF"
                 visible="false"
                 material="opacity: 1; transparent: false"
             >
@@ -149,6 +148,17 @@
         const planet = document.querySelector('#hand-planet');
         const bgMusic = document.querySelector('#bg-music');
         const soundBtn = document.querySelector('#sound-btn');
+
+        // Перевірка завантаження текстури
+        const earthTexture = document.querySelector('#earth-texture');
+        if (earthTexture) {
+            earthTexture.addEventListener('load', () => {
+                console.log('Текстура earth.jpg успішно завантажена');
+            });
+            earthTexture.addEventListener('error', () => {
+                console.error('Помилка завантаження текстури earth.jpg');
+            });
+        }
 
         // Логіка відстеження маркера
         if (targetEntity) {
