@@ -9,7 +9,6 @@
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://unpkg.com/aframe-particle-system-component@1.1.2/dist/aframe-particle-system-component.min.js"></script>
 
     <style>
         html, body {
@@ -98,56 +97,28 @@
         loading-screen="enabled: false"
         embedded
         renderer="colorManagement: true; physicallyCorrectLights: true;"
+        touch-gestures
     >
         <a-assets>
             <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
             <img id="earth-texture" src="./earth.jpg">
-            <img id="sparkle-texture" src="https://raw.githubusercontent.com/Lessa2332/worldplay/main/star.png">
         </a-assets>
 
         <a-camera
             id="camera"
+            position="0 0 1.5"
             look-controls="enabled: false"
-            position="0 0 0"
         ></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0">
-            <a-text
-                value="З Днем миру!"
-                position="0 0.8 -0.5"
-                width="1.5"
-                align="center"
-                color="#FFD700"
-                font="https://cdn.aframe.io/fonts/Aileron-Semibold.fnt"
-                visible="false"
-                id="greeting-text"
-            >
-                <a-animation
-                    attribute="scale"
-                    from="0.1 0.1 0.1"
-                    to="1 1 1"
-                    dur="1000"
-                    fill="forwards"
-                    easing="ease-out"
-                ></a-animation>
-            </a-text>
-
             <a-sphere
                 id="hand-planet"
-                gesture-handler="rotationSpeed: 1; minScale: 0.2; maxScale: 2.0"
                 position="0 0 -0.5"
                 radius="0.4"
                 src="#earth-texture"
                 visible="false"
-                sparkle-on-touch
+                material="opacity: 1; transparent: false"
             >
-                <a-animation
-                    attribute="scale"
-                    begin="touch"
-                    to="1.1 1.1 1.1" 
-                    dur="100"
-                    direction="alternate"
-                ></a-animation>
                 <a-animation
                     attribute="rotation"
                     to="0 360 0"
@@ -155,24 +126,6 @@
                     repeat="indefinite"
                 ></a-animation>
             </a-sphere>
-
-            <a-entity id="sparkles"
-                position="0 0 -0.5"
-                visible="false"
-                particle-system="
-                    preset: custom;
-                    texture: #sparkle-texture;
-                    maxAge: 1;
-                    particleCount: 50;
-                    size: 0.05;
-                    velocitySpread: 0.5 0.5 0.5;
-                    accelerationSpread: 0 0.5 0;
-                    color: #FFD700, #FFFFFF;
-                    blending: 1;
-                    duration: 0.5;
-                    loop: false;
-                "
-            ></a-entity>
         </a-entity>
     </a-scene>
 
@@ -183,7 +136,9 @@
 
     <script>
         // Адаптивність для повного екрану
-        function fixHeight() { document.body.style.height = window.innerHeight + 'px'; }
+        function fixHeight() { 
+            document.body.style.height = window.innerHeight + 'px'; 
+        }
         fixHeight();
         window.addEventListener('resize', fixHeight);
 
@@ -193,7 +148,17 @@
         const planet = document.querySelector('#hand-planet');
         const bgMusic = document.querySelector('#bg-music');
         const soundBtn = document.querySelector('#sound-btn');
-        const greetingText = document.querySelector('#greeting-text');
+
+        // Перевірка завантаження текстури
+        const earthTexture = document.querySelector('#earth-texture');
+        if (earthTexture) {
+            earthTexture.addEventListener('load', () => {
+                console.log('Текстура earth.jpg успішно завантажена');
+            });
+            earthTexture.addEventListener('error', () => {
+                console.error('Помилка завантаження текстури earth.jpg');
+            });
+        }
 
         // Логіка відстеження маркера
         if (targetEntity) {
@@ -202,11 +167,8 @@
                 loader.style.display = 'none';
                 if (planet) {
                     planet.setAttribute('visible', 'true');
+                    console.log("Планета видима:", planet.getAttribute('visible'));
                     planet.components.animation.pause();
-                }
-                if (greetingText) {
-                    greetingText.setAttribute('visible', 'true');
-                    greetingText.components.animation.play();
                 }
                 if (bgMusic && bgMusic.paused) {
                     bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
@@ -219,16 +181,16 @@
                 console.log("ℹ️ Маркер втрачено.");
                 if (planet) {
                     planet.setAttribute('visible', 'false');
+                    console.log("Планета невидима:", planet.getAttribute('visible'));
                     planet.components.animation.play();
-                }
-                if (greetingText) {
-                    greetingText.setAttribute('visible', 'false');
                 }
                 if (bgMusic && !bgMusic.paused) bgMusic.pause();
                 loader.style.display = 'flex';
                 loader.querySelector('.pulse').textContent = '🌍 Світ на долоні 🎈';
                 loader.querySelector('div[style]').textContent = 'Наведи камеру на маркер! 😊🎨';
             });
+        } else {
+            console.error('Елемент mindar-image-target не знайдено!');
         }
 
         // Обробка кнопки звуку
@@ -236,105 +198,87 @@
             if (bgMusic.paused) {
                 bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
                 soundBtn.classList.remove('off');
-                soundBtn.textContent = 'Увімкнути звук';
+                soundBtn.textContent = 'Вимкнути звук';
             } else {
                 bgMusic.pause();
                 soundBtn.classList.add('off');
-                soundBtn.textContent = 'Вимкнути звук';
+                soundBtn.textContent = 'Увімкнути звук';
             }
         });
 
-        // Компонент для обробки жестів (обертання та масштабування)
-        AFRAME.registerComponent('gesture-handler', {
+        // Компонент для обробки сенсорних жестів
+        AFRAME.registerComponent('touch-gestures', {
             schema: {
                 minScale: { type: 'number', default: 0.2 },
                 maxScale: { type: 'number', default: 3.0 },
                 rotationSpeed: { type: 'number', default: 2.0 }
             },
             init: function () {
-                const self = this;
                 this.isRotating = false;
                 this.isPinching = false;
                 this.startPos = { x: 0, y: 0 };
                 this.currentScale = 1;
-                
-                const onDown = (e) => {
-                    e.preventDefault();
-                    let touches = e.touches || [{ pageX: e.pageX, pageY: e.pageY }];
-                    
-                    if (touches.length === 1) {
-                        self.isRotating = true;
-                        self.startPos.x = touches[0].pageX;
-                        self.startPos.y = touches[0].pageY;
-                    } else if (touches.length === 2) {
-                        self.isPinching = true;
-                        self.isRotating = false;
-                        self.initialDistance = Math.hypot(
-                            touches[0].pageX - touches[1].pageX,
-                            touches[0].pageY - touches[1].pageY
-                        );
-                        self.currentScale = self.el.object3D.scale.x;
-                    }
-                    self.el.emit('touch');
-                };
+                this.planet = document.querySelector('#hand-planet');
 
-                const onMove = (e) => {
-                    e.preventDefault();
-                    let touches = e.touches || [{ pageX: e.pageX, pageY: e.pageY }];
-
-                    if (self.isRotating && touches.length === 1) {
-                        const deltaX = touches[0].pageX - self.startPos.x;
-                        const deltaY = touches[0].pageY - self.startPos.y;
-                        self.el.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX) * self.data.rotationSpeed;
-                        self.el.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY) * self.data.rotationSpeed;
-                        self.startPos.x = touches[0].pageX;
-                        self.startPos.y = touches[0].pageY;
-                    } else if (self.isPinching && touches.length === 2) {
-                        const currentDistance = Math.hypot(
-                            touches[0].pageX - touches[1].pageX,
-                            touches[0].pageY - touches[1].pageY
-                        );
-                        const scaleFactor = currentDistance / self.initialDistance;
-                        const newScale = Math.max(self.data.minScale, Math.min(self.data.maxScale, self.currentScale * scaleFactor));
-                        self.el.object3D.scale.set(newScale, newScale, newScale);
-                    }
-                };
-
-                const onUp = () => {
-                    self.isRotating = false;
-                    self.isPinching = false;
-                };
-
-                this.el.addEventListener('mousedown', onDown);
-                this.el.addEventListener('touchstart', onDown, { passive: false });
-                document.addEventListener('mousemove', onMove);
-                document.addEventListener('touchmove', onMove, { passive: false });
-                document.addEventListener('mouseup', onUp);
-                document.addEventListener('touchend', onUp);
-                document.addEventListener('touchcancel', onUp);
-            }
-        });
-
-        // Компонент для блискучих частинок при дотику
-        AFRAME.registerComponent('sparkle-on-touch', {
-            init: function() {
-                const sparkles = document.querySelector('#sparkles');
-                if (!sparkles) {
-                    console.error('Елемент #sparkles не знайдено!');
+                if (!this.planet) {
+                    console.error('Планета не знайдена в компоненті touch-gestures');
                     return;
                 }
-                const particleSystem = sparkles.components['particle-system'];
-                this.el.addEventListener('touch', () => {
-                    const planetPos = this.el.object3D.position;
-                    sparkles.object3D.position.copy(planetPos);
-                    sparkles.setAttribute('visible', true);
-                    if (particleSystem) {
-                        particleSystem.reset();
-                        particleSystem.startParticles();
+
+                console.log('Компонент touch-gestures ініціалізовано');
+
+                this.el.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    console.log('touchstart triggered, touches:', e.touches.length);
+                    if (e.touches.length === 1) {
+                        this.isRotating = true;
+                        this.startPos.x = e.touches[0].pageX;
+                        this.startPos.y = e.touches[0].pageY;
+                        console.log('Початок обертання, позиція:', this.startPos);
+                    } else if (e.touches.length === 2) {
+                        this.isPinching = true;
+                        this.isRotating = false;
+                        this.initialDistance = Math.hypot(
+                            e.touches[0].pageX - e.touches[1].pageX,
+                            e.touches[0].pageY - e.touches[1].pageY
+                        );
+                        this.currentScale = this.planet.object3D.scale.x;
+                        console.log('Початок масштабування, відстань:', this.initialDistance);
                     }
+                });
+
+                this.el.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    console.log('touchmove triggered, touches:', e.touches.length);
+                    if (this.isPinching && e.touches.length === 2) {
+                        const currentDistance = Math.hypot(
+                            e.touches[0].pageX - e.touches[1].pageX,
+                            e.touches[0].pageY - e.touches[1].pageY
+                        );
+                        const scaleFactor = currentDistance / this.initialDistance;
+                        const newScale = Math.max(this.data.minScale, Math.min(this.data.maxScale, this.currentScale * scaleFactor));
+                        this.planet.object3D.scale.set(newScale, newScale, newScale);
+                        console.log('Масштабування, новий масштаб:', newScale);
+                    } else if (this.isRotating && e.touches.length === 1) {
+                        const deltaX = (e.touches[0].pageX - this.startPos.x) * this.data.rotationSpeed;
+                        const deltaY = (e.touches[0].pageY - this.startPos.y) * this.data.rotationSpeed;
+                        this.planet.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
+                        this.planet.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
+                        this.startPos.x = e.touches[0].pageX;
+                        this.startPos.y = e.touches[0].pageY;
+                        console.log('Обертання, deltaX:', deltaX, 'deltaY:', deltaY);
+                    }
+                });
+
+                this.el.addEventListener('touchend', () => {
+                    console.log('touchend triggered');
+                    this.isRotating = false;
+                    this.isPinching = false;
                 });
             }
         });
     </script>
 </body>
+</html>
+
 </html>
