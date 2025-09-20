@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="Сцена з планетою для дітей">
+    <meta name="description" content="AR-сцена з планетою для дітей">
     <title>🌍«Світ на долоні » 🎈</title>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
     <style>
@@ -86,17 +87,21 @@
 <body>
     <div class="arjs-loader" id="loader">
         <div class="pulse">🌍 Світ на долоні 🎈</div>
-        <div style="margin-top: 20px; font-size: 1.2em;">Сфера має з’явитися! 😊🎨</div>
+        <div style="margin-top: 20px; font-size: 1.2em;">Наведи камеру на маркер! 😊🎨</div>
     </div>
 
     <a-scene
+        mindar-image="imageTargetSrc: ./my-marker.mind;"
         vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+        loading-screen="enabled: false"
         embedded
         renderer="colorManagement: true; physicallyCorrectLights: true;"
         touch-gestures
     >
         <a-assets>
             <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
+            <img id="earth-texture" src="./earth.jpg">
         </a-assets>
 
         <a-camera
@@ -105,21 +110,24 @@
             look-controls="enabled: false"
         ></a-camera>
 
-        <a-sphere
-            id="hand-planet"
-            position="0 0 -1"
-            radius="0.4"
-            color="#0000FF"
-            visible="true"
-            material="opacity: 1; transparent: false"
-        >
-            <a-animation
-                attribute="rotation"
-                to="0 360 0"
-                dur="5000"
-                repeat="indefinite"
-            ></a-animation>
-        </a-sphere>
+        <a-entity mindar-image-target="targetIndex: 0">
+            <a-sphere
+                id="hand-planet"
+                position="0 0 -0.5"
+                radius="0.4"
+                src="#earth-texture"
+                color="#0000FF"
+                visible="false"
+                material="opacity: 1; transparent: false"
+            >
+                <a-animation
+                    attribute="rotation"
+                    to="0 360 0"
+                    dur="5000"
+                    repeat="indefinite"
+                ></a-animation>
+            </a-sphere>
+        </a-entity>
     </a-scene>
 
     <div class="controls">
@@ -137,20 +145,43 @@
 
         // Посилання на елементи
         const loader = document.querySelector('#loader');
+        const targetEntity = document.querySelector('[mindar-image-target]');
         const planet = document.querySelector('#hand-planet');
         const bgMusic = document.querySelector('#bg-music');
         const soundBtn = document.querySelector('#sound-btn');
 
-        // Приховуємо лоадер після ініціалізації сцени
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('Сцена ініціалізована');
-            if (planet) {
-                console.log('Сфера знайдена, visible:', planet.getAttribute('visible'));
+        // Логіка відстеження маркера
+        if (targetEntity) {
+            targetEntity.addEventListener('targetFound', () => {
+                console.log("🎯 Маркер знайдено! Планета з'явилася.");
                 loader.style.display = 'none';
-            } else {
-                console.error('Сфера не знайдена!');
-            }
-        });
+                if (planet) {
+                    planet.setAttribute('visible', 'true');
+                    console.log("Планета видима:", planet.getAttribute('visible'));
+                    planet.components.animation.pause();
+                }
+                if (bgMusic && bgMusic.paused) {
+                    bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
+                    soundBtn.classList.remove('off');
+                    soundBtn.textContent = 'Вимкнути звук';
+                }
+            });
+
+            targetEntity.addEventListener('targetLost', () => {
+                console.log("ℹ️ Маркер втрачено.");
+                if (planet) {
+                    planet.setAttribute('visible', 'false');
+                    console.log("Планета невидима:", planet.getAttribute('visible'));
+                    planet.components.animation.play();
+                }
+                if (bgMusic && !bgMusic.paused) bgMusic.pause();
+                loader.style.display = 'flex';
+                loader.querySelector('.pulse').textContent = '🌍 Світ на долоні 🎈';
+                loader.querySelector('div[style]').textContent = 'Наведи камеру на маркер! 😊🎨';
+            });
+        } else {
+            console.error('Елемент mindar-image-target не знайдено!');
+        }
 
         // Обробка кнопки звуку
         soundBtn.addEventListener('click', () => {
@@ -169,8 +200,8 @@
         AFRAME.registerComponent('touch-gestures', {
             schema: {
                 minScale: { type: 'number', default: 0.2 },
-                maxScale: { type: 'number', default: 3.0 }, // Збільшено maxScale для більшого масштабування
-                rotationSpeed: { type: 'number', default: 2.0 } // Збільшено чутливість обертання
+                maxScale: { type: 'number', default: 3.0 },
+                rotationSpeed: { type: 'number', default: 2.0 }
             },
             init: function () {
                 this.isRotating = false;
