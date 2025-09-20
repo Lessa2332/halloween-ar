@@ -7,7 +7,6 @@
     <title>🌍«Світ на долоні » 🎈</title>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
     <style>
@@ -87,46 +86,39 @@
 <body>
     <div class="arjs-loader" id="loader">
         <div class="pulse">🌍 Світ на долоні 🎈</div>
-        <div style="margin-top: 20px; font-size: 1.2em;">Наведи камеру на маркер! 😊🎨</div>
+        <div style="margin-top: 20px; font-size: 1.2em;">Сфера має з’явитися! 😊🎨</div>
     </div>
 
     <a-scene
-        mindar-image="imageTargetSrc: ./my-marker.mind;"
         vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false"
-        loading-screen="enabled: false"
         embedded
         renderer="colorManagement: true; physicallyCorrectLights: true;"
         touch-gestures
     >
         <a-assets>
             <audio id="bg-music" src="./bg-music.mp3" preload="auto" loop></audio>
-            <img id="earth-texture" src="./earth.jpg">
         </a-assets>
 
         <a-camera
             id="camera"
+            position="0 0 1"
             look-controls="enabled: false"
-            position="0 0 0"
         ></a-camera>
 
-        <!-- Тимчасово використовуємо <a-entity> замість mindar-image-target для тестування жестів -->
-        <a-entity id="planet-container">
-            <a-sphere
-                id="hand-planet"
-                position="0 0 -0.5"
-                radius="0.4"
-                src="#earth-texture"
-                visible="true"
-            >
-                <a-animation
-                    attribute="rotation"
-                    to="0 360 0"
-                    dur="5000"
-                    repeat="indefinite"
-                ></a-animation>
-            </a-sphere>
-        </a-entity>
+        <a-sphere
+            id="hand-planet"
+            position="0 0 -1"
+            radius="0.4"
+            color="#0000FF"
+            visible="true"
+        >
+            <a-animation
+                attribute="rotation"
+                to="0 360 0"
+                dur="5000"
+                repeat="indefinite"
+            ></a-animation>
+        </a-sphere>
     </a-scene>
 
     <div class="controls">
@@ -136,50 +128,28 @@
 
     <script>
         // Адаптивність для повного екрану
-        function fixHeight() { document.body.style.height = window.innerHeight + 'px'; }
+        function fixHeight() { 
+            document.body.style.height = window.innerHeight + 'px'; 
+        }
         fixHeight();
         window.addEventListener('resize', fixHeight);
 
         // Посилання на елементи
         const loader = document.querySelector('#loader');
-        const planetContainer = document.querySelector('#planet-container');
         const planet = document.querySelector('#hand-planet');
         const bgMusic = document.querySelector('#bg-music');
         const soundBtn = document.querySelector('#sound-btn');
 
-        // Логіка відстеження маркера (тимчасово відключена для тестування)
-        /*
-        const targetEntity = document.querySelector('[mindar-image-target]');
-        if (targetEntity) {
-            targetEntity.addEventListener('targetFound', () => {
-                console.log("🎯 Маркер знайдено! Планета з'явилася.");
+        // Приховуємо лоадер після ініціалізації сцени
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Сцена ініціалізована');
+            if (planet) {
+                console.log('Сфера знайдена, visible:', planet.getAttribute('visible'));
                 loader.style.display = 'none';
-                if (planet) {
-                    planet.setAttribute('visible', 'true');
-                    console.log("Планета видима:", planet.getAttribute('visible'));
-                    planet.components.animation.pause();
-                }
-                if (bgMusic && bgMusic.paused) {
-                    bgMusic.play().catch(e => console.log("🔇 Помилка відтворення музики:", e));
-                    soundBtn.classList.remove('off');
-                    soundBtn.textContent = 'Вимкнути звук';
-                }
-            });
-
-            targetEntity.addEventListener('targetLost', () => {
-                console.log("ℹ️ Маркер втрачено.");
-                if (planet) {
-                    planet.setAttribute('visible', 'false');
-                    console.log("Планета невидима:", planet.getAttribute('visible'));
-                    planet.components.animation.play();
-                }
-                if (bgMusic && !bgMusic.paused) bgMusic.pause();
-                loader.style.display = 'flex';
-                loader.querySelector('.pulse').textContent = '🌍 Світ на долоні 🎈';
-                loader.querySelector('div[style]').textContent = 'Наведи камеру на маркер! 😊🎨';
-            });
-        }
-        */
+            } else {
+                console.error('Сфера не знайдена!');
+            }
+        });
 
         // Обробка кнопки звуку
         soundBtn.addEventListener('click', () => {
@@ -194,7 +164,7 @@
             }
         });
 
-        // Новий компонент для обробки сенсорних жестів на сцені
+        // Компонент для обробки сенсорних жестів
         AFRAME.registerComponent('touch-gestures', {
             schema: {
                 minScale: { type: 'number', default: 0.2 },
@@ -208,7 +178,13 @@
                 this.currentScale = 1;
                 this.planet = document.querySelector('#hand-planet');
 
-                // Додаємо обробники подій до сцени
+                if (!this.planet) {
+                    console.error('Планета не знайдена в компоненті touch-gestures');
+                    return;
+                }
+
+                console.log('Компонент touch-gestures ініціалізовано');
+
                 this.el.addEventListener('touchstart', (e) => {
                     e.preventDefault();
                     console.log('touchstart triggered', e.touches.length);
