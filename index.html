@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="AR-сцена з планетою для дітей">
+    <meta name="description" content="Сцена з планетою для дітей">
     <title>🌍«Світ на долоні » 🎈</title>
 
     <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
@@ -101,7 +101,7 @@
 
         <a-camera
             id="camera"
-            position="0 0 1"
+            position="0 0 1.5"
             look-controls="enabled: false"
         ></a-camera>
 
@@ -111,6 +111,7 @@
             radius="0.4"
             color="#0000FF"
             visible="true"
+            material="opacity: 1; transparent: false"
         >
             <a-animation
                 attribute="rotation"
@@ -168,8 +169,8 @@
         AFRAME.registerComponent('touch-gestures', {
             schema: {
                 minScale: { type: 'number', default: 0.2 },
-                maxScale: { type: 'number', default: 2.0 },
-                rotationSpeed: { type: 'number', default: 1.5 }
+                maxScale: { type: 'number', default: 3.0 }, // Збільшено maxScale для більшого масштабування
+                rotationSpeed: { type: 'number', default: 2.0 } // Збільшено чутливість обертання
             },
             init: function () {
                 this.isRotating = false;
@@ -187,11 +188,12 @@
 
                 this.el.addEventListener('touchstart', (e) => {
                     e.preventDefault();
-                    console.log('touchstart triggered', e.touches.length);
+                    console.log('touchstart triggered, touches:', e.touches.length);
                     if (e.touches.length === 1) {
                         this.isRotating = true;
                         this.startPos.x = e.touches[0].pageX;
                         this.startPos.y = e.touches[0].pageY;
+                        console.log('Початок обертання, позиція:', this.startPos);
                     } else if (e.touches.length === 2) {
                         this.isPinching = true;
                         this.isRotating = false;
@@ -200,12 +202,13 @@
                             e.touches[0].pageY - e.touches[1].pageY
                         );
                         this.currentScale = this.planet.object3D.scale.x;
+                        console.log('Початок масштабування, відстань:', this.initialDistance);
                     }
                 });
 
                 this.el.addEventListener('touchmove', (e) => {
                     e.preventDefault();
-                    console.log('touchmove triggered', e.touches.length);
+                    console.log('touchmove triggered, touches:', e.touches.length);
                     if (this.isPinching && e.touches.length === 2) {
                         const currentDistance = Math.hypot(
                             e.touches[0].pageX - e.touches[1].pageX,
@@ -214,6 +217,7 @@
                         const scaleFactor = currentDistance / this.initialDistance;
                         const newScale = Math.max(this.data.minScale, Math.min(this.data.maxScale, this.currentScale * scaleFactor));
                         this.planet.object3D.scale.set(newScale, newScale, newScale);
+                        console.log('Масштабування, новий масштаб:', newScale);
                     } else if (this.isRotating && e.touches.length === 1) {
                         const deltaX = (e.touches[0].pageX - this.startPos.x) * this.data.rotationSpeed;
                         const deltaY = (e.touches[0].pageY - this.startPos.y) * this.data.rotationSpeed;
@@ -221,6 +225,7 @@
                         this.planet.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
                         this.startPos.x = e.touches[0].pageX;
                         this.startPos.y = e.touches[0].pageY;
+                        console.log('Обертання, deltaX:', deltaX, 'deltaY:', deltaY);
                     }
                 });
 
