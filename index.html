@@ -233,7 +233,6 @@
                     if (e.touches.length === 1) {
                         this.isRotating = true;
                         this.startPos.x = e.touches[0].pageX;
-                        this.startPos.y = e.touches[0].pageY;
                         console.log('Початок обертання, позиція:', this.startPos);
                     } else if (e.touches.length === 2) {
                         this.isPinching = true;
@@ -261,12 +260,9 @@
                         console.log('Масштабування, новий масштаб:', newScale);
                     } else if (this.isRotating && e.touches.length === 1) {
                         const deltaX = (e.touches[0].pageX - this.startPos.x) * this.data.rotationSpeed;
-                        const deltaY = (e.touches[0].pageY - this.startPos.y) * this.data.rotationSpeed;
                         this.planet.object3D.rotation.y += THREE.MathUtils.degToRad(deltaX);
-                        this.planet.object3D.rotation.x += THREE.MathUtils.degToRad(deltaY);
                         this.startPos.x = e.touches[0].pageX;
-                        this.startPos.y = e.touches[0].pageY;
-                        console.log('Обертання, deltaX:', deltaX, 'deltaY:', deltaY);
+                        console.log('Обертання, deltaX:', deltaX);
                     }
                 });
 
@@ -280,3 +276,4 @@
     </script>
 </body>
 </html>
+
